@@ -1,4 +1,5 @@
 import React from "react";
+import { mutate } from "swr";
 import {
   Modal,
   ModalOverlay,
@@ -17,20 +18,21 @@ import {
 import { useForm } from "react-hook-form";
 import { createSite } from "../lib/db";
 import { useAuth } from "../lib/auth";
-const AddSiteModal = () => {
+const AddSiteModal = ({ children }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const initialRef = React.useRef();
 
   const toast = useToast();
   const auth = useAuth();
   const { handleSubmit, register } = useForm();
-  const onCreateSite = ({ site, url }) => {
-    createSite({
+  const onCreateSite = ({ name, url }) => {
+    const newSite = {
       authorId: auth.user.uid,
       createdAt: new Date().toISOString(),
-      site,
+      name,
       url,
-    });
+    };
+    createSite(newSite);
     toast({
       title: "Exitoso!",
       description: "Su sitio se ha agregado correctamente",
@@ -38,19 +40,32 @@ const AddSiteModal = () => {
       duration: 5000,
       isClosable: true,
     });
+    // Update the SWR cache to add the new site
+    mutate(
+      "/api/sites",
+      async (data) => {
+        console.log(data);
+        return { sites: [...data.sites, newSite] };
+      },
+      false
+    );
     onClose();
   };
 
   return (
     <>
       <Button
-        fontWeight="medium"
-        variant="solid"
-        size="md"
-        maxW="200px"
         onClick={onOpen}
+        backgroundColor="gray.900"
+        color="white"
+        fontWeight="medium"
+        _hover={{ bg: "gray.700" }}
+        _active={{
+          bg: "gray.800",
+          transform: "scale(0.95)",
+        }}
       >
-        Agrega tu primer sitio
+        {children}
       </Button>
 
       <Modal
@@ -72,8 +87,8 @@ const AddSiteModal = () => {
               <FormLabel>Nombre</FormLabel>
               <Input
                 placeholder="Mi pagina web"
-                id="site"
-                {...register("site", { required: true })}
+                id="name"
+                {...register("name", { required: true })}
               />
             </FormControl>
 
