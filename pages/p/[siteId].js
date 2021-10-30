@@ -1,13 +1,5 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/router";
-import Feedback from "../../components/Feedback";
-import {
-  getAllFeedback,
-  getAllSites,
-} from "../../lib/db-admin";
-
-import { useAuth } from "../../lib/auth";
-
 import {
   Box,
   Button,
@@ -15,12 +7,19 @@ import {
   FormLabel,
   Input,
 } from "@chakra-ui/react";
+
+import Feedback from "../../components/Feedback";
+import {
+  getAllFeedback,
+  getAllSites,
+} from "../../lib/db-admin";
+import { useAuth } from "../../lib/auth";
 import { createFeedback } from "../../lib/db";
 
 export async function getStaticProps(context) {
   const siteId = context.params.siteId;
 
-  const feedback = await getAllFeedback(siteId);
+  const { feedback } = await getAllFeedback(siteId);
 
   return {
     props: {
@@ -30,7 +29,7 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-  const sites = await getAllSites();
+  const { sites } = await getAllSites();
   const paths = sites.map((site) => ({
     params: {
       siteId: site.id.toString(),
@@ -47,6 +46,8 @@ const Sitefeedback = ({ initialFeedback }) => {
   const router = useRouter();
 
   const inputEl = useRef(null);
+  const [allFeedback, setAllFeedback] =
+    useState(initialFeedback);
 
   const onSubmit = (e) => {
     e.preventDefault();
@@ -59,7 +60,7 @@ const Sitefeedback = ({ initialFeedback }) => {
       provider: auth.user.provider,
       status: "pending",
     };
-
+    setAllFeedback([newFeedback, ...allFeedback]);
     createFeedback(newFeedback);
   };
 
@@ -90,7 +91,7 @@ const Sitefeedback = ({ initialFeedback }) => {
           </Button>
         </FormControl>
       </Box>
-      {initialFeedback.map((feedback) => {
+      {allFeedback.map((feedback) => {
         return <Feedback key={feedback.id} {...feedback} />;
       })}
     </Box>
